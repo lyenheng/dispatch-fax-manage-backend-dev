@@ -1,0 +1,145 @@
+server:
+  servlet-path:
+  tomcat:
+    max-http-post-size: 1024000000
+
+logging:
+  level: info
+
+spring:
+  profiles:
+    active: @profiles.active@
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      test-on-borrow: false
+      test-while-idle: true
+      test-on-return: false
+      validation-query: select 'x'
+  jpa:
+    database: MYSQL
+    show-sql: true
+    properties.hibernate.dialect: org.hibernate.dialect.MySQL5Dialect
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy
+  http:
+    multipart:
+      max-file-size: 128MB
+      max-request-size: 128MB
+  messages:
+    basename: authority, authz-api, authz-security, message
+  data:
+    mongodb:
+      repositories:
+        enabled: false
+    redis:
+      repositories:
+        enabled: false
+  jmx:
+    default-domain: avcs
+
+commons:
+  #跨域支持
+  cors:
+    enabled: true
+    maxAge: 3600
+    allowCredentials: true
+    allowedOrigins:
+      - '*'
+    allowedHeaders:
+      - '*'
+    allowedMethods:
+      - '*'
+  websocket:
+    # 监听的节点
+    endPoint: "/ws/stomp"
+    # 跨域支持
+    allowedOrigins: "*"
+    # 可订阅的主题
+    enableSimpleBroker:
+      - "/user"
+      - "/singlePlan"
+      - "/personTollgate"
+      - "/downloadInfo"
+      - "/downloadComplete"
+      - "/messageCenter"
+      - "/monitor"
+      - "/monitorPaging"
+      - "/window"
+      - "/broadcast"
+      - "/business_device"
+      - "/sync_operation"
+      - "/meetPlan"
+      - "/meetRoom"
+      - "/dispatch-control-list"
+      - "/map"
+      - "/projection"
+      - "/message"
+      - "/call_device"
+      - "/syncStyleList"
+    # 客户端向服务器发消息时的前缀
+    applicationDestinationPrefixes: "/ws"
+    # 心跳间隔
+    heartBeatInterval: 10000
+  authz:
+    enable: true
+    security:
+      # 跳转至登录页的url
+      loginUrl: /kd-server/oauth2/authorize
+      # 登录异常的url
+      expiredUrl: /kd-server/auth/unauthorized
+      # 未授权
+      unauthorizedUrl: /kd-server/auth/unauthorized
+      permitAllUrl:
+        - "/css/**"
+        - "/js/**"
+        - "/img/**"
+        - "/static/**"
+        - "/public/**"
+        - "/"
+        - "/oauth2/**"
+        - "/auth/**"
+        - "/security/loginPage"
+        - "/callback/**"
+        - "/_ping"
+        - "/login.html"
+        - "/global-config.json"
+        - "/error"
+        - "/authority/**"
+        - "/qr/**"
+        - "/u2f/**"
+        - "/up/**"
+        - "/authentication/**"
+        - "/client/**"
+        - "/login_page/**"
+        - "/ws/**"
+        - "/socket/**"
+        - "/paramconfig-server/api/getLoginLogo"
+        - "/paramconfig-server/api/getLoginMainTitle"
+        - "/paramconfig-server/api/getLoginSubTitle"
+        - "/avcsDispatchExport/**"
+        -  "/**"
+# 发送消息设置线程池大小
+com.kedacom.avcs.message.maxPoolSize: 3
+
+com.kedacom.avcs.dispatch.fax.heartbeat.interval: 90000
+
+com.scooper.fax:
+  username: "kedacom"
+  password: "kedacom"
+
+dispatch.fax.topics: "DISPATCH_FAX_NOTIFY"
+
+avcs.dispatch.audio.record:
+  basePath: /data/share/avcs2/audio # 文件存储地址
+  virtualPath:
+    # 文件存储地址映射到http地址, 内部使用
+    innerUrl: https://dolphin-dev.kedacom.com/avcs2/upload/audio
+    # 文件存储地址映射到http地址， 外部使用，如流媒体
+    externalUrl: http://dolphin-dev.kedacom.com/avcs2/upload/audio
+# spring.resources.static-locations: file:/data/private/avcs2/audio #springmvc文件映射
+
+avcs.fax.manage.file.path: ${avcs.dispatch.audio.record.basePath}/temp

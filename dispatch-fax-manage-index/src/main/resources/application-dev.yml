@@ -1,0 +1,309 @@
+server:
+  port: 8093
+logging:
+  level:
+    root: info
+spring:
+  datasource:
+    url: jdbc:mysql://192.168.9.249:3306/avcs2_devtest?useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC&useSSL=false
+    username: root
+    password: m4R4YWn40QduqEKd
+    druid:
+      test-on-borrow: false
+      test-while-idle: true
+      test-on-return: false
+      validation-query: select 'x'
+  #  profiles:
+  #    include: dispatchmessagecenter
+  #redis配置
+  redis:
+    database: 8
+    host: 192.168.7.156
+    port: 6379
+    password: #123456
+  messages:
+    basename: messages, index
+  main:
+    allow-bean-definition-overriding: true
+    #kafka默认配置
+  kafka:
+    bootstrap-servers: 10.65.3.17:29092
+    consumer:
+      group-id: cdevice-manage-dispatch-avcs-dev1
+      enable-auto-commit: true
+      auto-offset-reset: earliest
+    # kafka多数据源配置，统一设备的kafka
+    secondary:
+      timeElapsed: false
+      batch-listeners:
+        - deviceclient
+      servers:
+        deviceclient: #设备权限kafka监听ra-role-notify,device-notify
+          consumer:
+            max-poll-records: 1000
+            fetch-min-size: 1024000 #bytes
+            fetch-max-wait: 300000
+            group-id: cdevice-manage-avcs-new-dev
+            enable-auto-commit: true
+            auto-offset-reset: earliest
+          bootstrap-servers: 10.65.3.30:19092
+        avcs: #融合通信内部使用kafka
+          consumer:
+            max-poll-records: 1000
+            fetch-max-wait: 500
+            fetch-min-size: 3500
+            group-id: avcs-new-dev
+            enable-auto-commit: true
+            auto-offset-reset: earliest
+          bootstrap-servers: 10.68.16.54:9092
+        ctserver: #ctsrever使用kafka
+          consumer:
+            group-id: cts
+            enable-auto-commit: true
+            auto-offset-reset: earliest
+            topic: kedamap-ct-data-connector-batch
+            single-topic: kedamap-ct-data-connector
+          bootstrap-servers: 10.65.3.30:19092
+      startup-policy: async #项目启动结束后进行kafka的监听
+
+commons.authz.security:
+  permitAllUrl:
+    - "/**"
+    - "/css/**"
+    - "/js/**"
+    - "/img/**"
+    - "/static/**"
+    - "/public/**"
+    - "/"
+    - "/oauth2/**"
+    - "/auth/**"
+    #设备同步的url不需要拦截
+    - "/callback/**"
+    - "/_ping"
+    - "/error"
+    - "/ws/**"
+    - "/socket/**"
+    #显控订阅回调不要拦截
+    - "/displayServer/process_callback"
+    #新媒体回调不拦截
+    - "/media/callback/notification"
+    #模拟新媒体不拦截
+    - "/mediatest/**"
+  logoutUrl: /auth/logout
+
+
+#统一权限验证
+commons.oauth2.client:
+  client_id: ty-dispatch-back #标识
+  clientSecret: c0yLFq  #密钥
+  grantType: password
+  serverUri: https://dolphin-dev.kedacom.com/cloud-rbac  # 服务端Server外网地址
+  serverInUri: http://dolphin-dev.kedacom.com  # 服务端Server内网地址(为了解决内网中调用不能用域名访问的问题)
+  clientUri: https://dolphin-dev.kedacom.com/avcs2   #客户端地址
+  serverName: cloud-rbac
+  jwtEnable: true #开启token 认证
+  kickSession: false #开启踢人
+  # 项目超管/部门管理员
+  username: avcs_dep_admin         #调用统一权限api使用
+  password: keda123#
+
+keda.services.media:
+  serverUri: http://192.168.7.174:8085
+  timeOut: 5500
+  isSkip: false # 是否跳过新媒体
+  pictureSynthesis: false
+  callbackTopic: AVCS_DEVICE_STATUS_NOTIFY_2
+  callbackUrl: http://192.168.8.73:8092/callback/notifyDevice # 设备状态回调地址，开发中
+
+#外部api相关配置
+kedacom.openapi:
+  media.serverUri: http://106.15.181.158   # 流媒体服务 没有用
+  #  ct.server.serverUri: http://dolphin-dev.kedacom.com #地图服务
+  # 设备权限里设备检索使用, 统一设备feign
+  client:
+    device:
+      url: http://dolphin-dev.kedacom.com
+      name: cdevice-manage-server-8080
+      path: /cdevice-manage-server/cdevice/openapi
+
+
+# 统一设备同步配置 RaDeviceNotifyProperties
+kedacom.openapi.device.notify:
+  # 回调地址,在新增的时候不会使用，更新和删除的时候会去调用地址去更新状态。
+  callbackUrl: http://10.255.0.115:8090/callback/update/device
+  # 统一设备的地址
+  serverUri: http://dolphin-dev.kedacom.com/cdevice-manage
+  imageUri: https://res-ctsp.kedacom.com/dms
+  enable: false #true同步kafka消息
+  # 订阅类型 已废弃
+  types:
+    - "1" #订阅状态
+    - "2" #订阅gps
+    - "3" #订阅新增
+    - "4" #订阅更新
+    - "5" #订阅删除
+  # kafka监听的topic,可以是多个
+  topics:
+    - "device-notify"
+  # 监听更新状态的消息
+  updateStatusTopics:
+    - "DEVICE_STATUS122"
+  # 监听更新位置的消息
+  updateGpsTopics:
+    - "DEVICE_GPS1"
+  deviceAlarm:
+    - "DEVICE_ALARM2"
+  updatePatrolStatusTopics:
+    - "device-patrol2"
+  updateStatusNotifyTopics:
+    - "device-notify-status2" # 监听统一设备逻辑状态主题
+  syn: false #true：项目启动时会去http方式同步统一设数据
+
+adc:
+  micro.service.enable: false # 是否微服务化，默认false
+  #启动项目时是否全量更新view表配置吧
+  updateView.start.syn: false #启动项目时，进行view表的更新，默认false
+  #同步ctserver相关配置
+  synCTServer:
+    main.switch: false  #CTServer总开关，默认true
+    device.enable: false #设备变更开关，默认true:跟设备订阅开关topic有关，订阅开关打开后此开关才生效
+    send.enable: true #设备的权限变更的时会去同步CT-server
+    start.send.enable: false  #项目启动时发送给CTServer私有空间，默认false
+    client.kafka.enable: false #强制kafka通知客户端发送ctserver
+    appName: avcs #发送CTServer时的appName
+    serviceName: avcs_dev #发送CTServer时的serviceName
+    num: 500 #发送CTServer时单条Kafka消息所包含的设备数。CT-Server最大支持2000，Kafka消息体最大1M。实际测试，配置500时，大约为600KB。根据项目情况进行配置，建议配置500。默认500
+    excludeProps: status,platGrouping,monitoredAreaCode,typeCode,parental,marLatitude,marLongitude,maAuFlow,lat,lng,id # 发送ctserver时不发送以下属性信息，都发送则不用配置
+    includeProps: #发送ctserver时发送的属性
+    publicSpace.enable: false #是否启用私有图层关联公有图层的配置
+  #分组类型树对应的相关设备属性配置 设备同步Properties
+  group.device.type:
+    enable: false  #是否启用配置，默认false,不启用配置的话，默认分组类型为-1，启用配置时会读取maping配置
+    mapping:
+      - groupType: -1
+        deviceTypes: IPC,BWC,Bodyworn,MT,PTT,TEL,MTD #多个用逗号分割
+  rbac:
+    synchronization: none  #area department none
+    group: true #是否同步作为分组
+    deviceGrouping: true # 同步设备时是否将设备同步入分组
+  authorize:
+    type:
+      - "group" #不配置默认为分组授权
+  #      - "device" # 设备授权
+  #      - "property" #属性授权
+  unifyDevice:
+    group:
+      enable: false
+      cache.time: 5 # 单位分钟，同步统一设备分组关系默认失效时间：5分钟，
+      syn: false # true时开启统一设备分组同步，默认false,重启时生效
+    grouping:
+      enable: false
+      syn: false #  true时开启统一设备分组关系同步，默认false,重启时生效
+    domainId: all # 默认All,配置具体的domainId，就只针对具体平台同步
+  status:
+    notify.listener: true #不配置默认监听统一设备状态,true为统一设备状态，false,新媒体状态，相当于统一设备
+  user:
+    syn.enable: false #是否启用人员分组树，默认false
+    cache.time: 20 #分钟
+  searchKey.init.enable: false #是否启动时初始化索引键,默认false
+  websocket:
+    enable: false #状态改变时发送websocket 默认不发送
+
+# 一机一档配置
+keda.kdall.token:
+  grantType: password
+  serverUri: http://dolphin-dev.kedacom.com/kdall  #服务端Server外网地址，或者test
+  username: kstp_kdall
+  password: 1qaz@wsx
+  jwtEnable: true
+
+flyway:
+  #是否开启flywary，默认true.
+  enabled: false
+  #迁移脚本的位置，默认db/migration.
+  locations: db/master
+  #检查迁移脚本的位置是否存在，默认false(暂时启用会启动错误).
+  #check-location: true
+  #设置迁移时的编码，默认UTF-8.
+  encoding: UTF-8
+  #当迁移时发现目标schema非空，而且带有没有元数据的表时，是否自动执行基准迁移，默认false.
+  baseline-on-migrate: true
+  baseline-version: 1.0.0
+
+# 音视频配置
+avcs.dispatch.common:
+  rbac.superAdminRole.sign: avcs_role2_super_admin # 音视频超级管理员标识
+  cdevice.url: http://192.168.7.156:9093/cdevice-manage # 统一设备地址
+  contact:
+    url: http://dolphin-dev.kedacom.com/kaas-server/open-api/  # 通讯录
+    clientId: tyDispatchBack
+    clientSecret: ivuX3O
+
+avcs.dispatch.log:
+  strategy: file  # 是否开启日志
+  es:
+    host: 192.168.7.42
+    port: 39200
+    indexName: avcs2_app_log
+
+avcs:
+  # 权限管理模块
+  access:
+    # 超级管理员角色标示
+    superAdmin.sign: "avcs_role2_super_admin"
+    redisTimeOut:
+      # 权限控制模块-会场redis缓存过期时间，单位：秒
+      meetRoom: 600
+      # 权限控制模块-预案redis缓存过期时间，单位：秒
+      meetPlan: 660
+      # 权限控制模块-大屏redis缓存过期时间，单位：秒
+      bigScreen: 540
+      # 权限控制模块-静态资源redis缓存过期时间，单位：秒
+      staticResource: 480
+    #资源类型标识
+    resource.type: "{'error': 0, 'number': 4, 'resourceTypes': [{'value': 'H', 'label': '会场'},{'value': 'Y', 'label': '预案'},{'value': 'D', 'label': '大屏'},{'value': 'J', 'label': '静态资源'}]}"
+    #权限标识
+    auth.type: "{'error': 0, 'number': 3, 'authTypes': [{'value': 'R', 'label': '查看'},{'value': 'U', 'label': '修改'},{'value': 'D', 'label': '删除'}]}"
+    #权限标识
+    allAuth.type: "{'error': 0, 'number': 4, 'authTypes': [{'value': 'R', 'label': '查看'},{'value': 'U', 'label': '修改'},{'value': 'D', 'label': '删除'},{'value': 'M', 'label': '配置'}]}"
+  # 新媒体控制模块配置
+  dispatch:
+    component.newMediaControl:
+      enableDeviceAbility: true # 是否开启设备能力：true(缺省值)或false
+      memberIdType: deviceId # 传入成员id类型：deviceId(缺省值)或gbId
+      mobilePrefix: #呼叫手机前缀
+      telPrefix: #呼叫固话前缀
+    controllist.topics: "avcs_dispatch_list_send_topic" #调度列表topic
+    common.data.file:
+      enabled: true
+      strategy: hd   # hd-硬盘 db-数据库 不推荐db，需要改数据库参数
+      basePath: /data/private/avcs2 # 文件存储地址
+    log:
+      strategy: file  # 是否开启日志 closed:关闭 / es / file:记录在业务日志中，打印在控制台
+      es:
+        host: 10.68.16.54
+        port: 9200  # http端口
+        indexName: avcs2_app_log  # 索引名
+    socket:
+      kafka.enable: false #websocket是否走 kafka，默认不发kafka
+    business:
+      heightLightAudio: 5 # 业务屏窗口高亮音量等级，超过即高亮
+  mpControl:
+    bro:
+      defaultBizScreen: false #业务屏是否广播，默认不广播业务屏
+    lodMeetplan:
+      module: MEETLIST,BIZSCREEN,BROADCAST,TV_WALL,MONITOR_CTRL,PLAYSCREEN  #预案加载成功所需模块
+      easyModule: MEETLIST,BIZSCREEN,BROADCAST,MONITOR_CTRL #一键点调预案加载成功所需模块
+  # quartz配置
+  quartz:
+    enabled: true
+    properties:
+      org.quartz:
+        scheduler:
+          instanceName: avcsQuartzScheduler
+          idleWaitTime: 10000
+          instanceId: AUTO
+        jobStore:
+          isClustered: true
+          class: org.quartz.impl.jdbcjobstore.JobStoreTX
+

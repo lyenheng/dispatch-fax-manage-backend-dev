@@ -1,0 +1,16 @@
+# maven
+target/
+*.jar
+*.war
+*.zip
+*.tar
+*.tar.gz
+
+# IntelliJ IDEA
+.idea
+*.iws
+*.iml
+*.ipr
+
+#log
+*.log
